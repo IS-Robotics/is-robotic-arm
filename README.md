@@ -5,7 +5,7 @@ An open-source 5-DOF (Degree of Freedom) 3D-printed robotic arm project. This re
 ## Repository Structure
 
 - [`docs/`](docs/) — Project documentation, research notes, and academic/technical reports.
-- [`electrical/`](electrical/) — Printed Circuit Board (PCB) designs routed in KiCad, including custom electromyography (EMG) sensors and wiring architecture for the RAMPS 1.4 shield.
+- [`electrical/`](electrical/) — Wiring architecture for the RAMPS 1.4 shield.
 - [`mechanical/`](mechanical/) — 3D Computer-Aided Design (CAD) models designed in Fusion 360, alongside exported URDF packages for robotic simulation.
 - [`software/`](software/) — Core control logic and firmware, divided into:
   - **Kinematics & Teleoperation:** Python-based (PyQt5) interactive analytical Inverse Kinematics (IK) and Forward Kinematics (FK) solvers.
