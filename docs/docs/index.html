@@ -1,0 +1,977 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>img{max-width:100%}[hidden]{display:none!important}body{margin:0}</style>
+<title>IS Robotic Arm</title>
+<meta name="description" content="Bras robotique 5 axes imprimé en 3D : mécanique, électronique, firmware, cinématique et jumeau numérique ROS 2.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,500..800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout : fiche technique d'ingénierie. Une colonne de lecture, des sections ordonnées
+   de la couche physique vers la couche numérique, une démo 3D vivante en tête. */
+:root {
+  --bg: #f3f4f6;
+  --surface: #ffffff;
+  --ink: #1b1d22;
+  --muted: #5c616c;
+  --line: #d9dce2;
+  --pla: #e9a385;          /* PLA pêche des pièces imprimées */
+  --pla-soft: #f8e3d9;
+  --accent: #b4522e;       /* pêche foncé, lisible sur fond clair */
+  --filament: #8b919b;     /* PLA gris des réducteurs */
+  --ok: #2c7a4b; --ok-bg: #e2f1e8;
+  --wip: #9a6512; --wip-bg: #f6ecd9;
+  --next: #4555a8; --next-bg: #e6e9f7;
+  --warn: #b03a2e;
+  --viewer-bg: #e9ebef; --viewer-grid: #c9cdd5; --viewer-grid2: #dde0e5; --viewer-white: #f4f4f2;
+  --shadow: 0 1px 2px rgba(20, 22, 28, .06), 0 8px 24px rgba(20, 22, 28, .06);
+
+  --f-display: "Archivo", "Arial Narrow", system-ui, sans-serif;
+  --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+
+  --step--1: .8125rem; --step-0: 1rem; --step-1: 1.25rem; --step-2: 1.625rem; --step-3: 2.25rem; --step-4: clamp(2.6rem, 7vw, 4.4rem);
+  --gutter: clamp(16px, 4vw, 40px);
+  --maxw: 1160px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121418; --surface: #1a1d23; --ink: #e8eaee; --muted: #9aa0ab; --line: #2b2f37;
+    --pla: #e9a385; --pla-soft: #3a2a23; --accent: #f0a17f; --filament: #9aa0aa;
+    --ok: #64c38b; --ok-bg: #18301f; --wip: #e2b04f; --wip-bg: #33280f; --next: #93a1ee; --next-bg: #1e2340;
+    --warn: #f08a7d;
+    --viewer-bg: #171a1f; --viewer-grid: #343943; --viewer-grid2: #23272e; --viewer-white: #e9e9e6;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121418; --surface: #1a1d23; --ink: #e8eaee; --muted: #9aa0ab; --line: #2b2f37;
+  --pla: #e9a385; --pla-soft: #3a2a23; --accent: #f0a17f; --filament: #9aa0aa;
+  --ok: #64c38b; --ok-bg: #18301f; --wip: #e2b04f; --wip-bg: #33280f; --next: #93a1ee; --next-bg: #1e2340;
+  --warn: #f08a7d;
+  --viewer-bg: #171a1f; --viewer-grid: #343943; --viewer-grid2: #23272e; --viewer-white: #e9e9e6;
+  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body {
+  background: var(--bg); color: var(--ink);
+  font: 400 var(--step-0)/1.6 var(--f-body);
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: var(--maxw); margin-inline: auto; padding-inline: var(--gutter); }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; line-height: 1.08; }
+h2 { font-size: var(--step-3); font-weight: 750; font-stretch: 112%; letter-spacing: -.01em; }
+h3 { font-size: var(--step-1); font-weight: 700; font-stretch: 105%; }
+p { margin: 0; }
+a { color: var(--accent); text-underline-offset: 3px; }
+a:focus-visible, button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.eyebrow {
+  font-family: var(--f-mono); font-size: var(--step--1); letter-spacing: .08em; text-transform: uppercase; color: var(--muted);
+}
+.prose { max-width: 64ch; color: var(--muted); }
+.prose strong { color: var(--ink); font-weight: 600; }
+
+/* ---------- Bandeau ---------- */
+.topbar { border-bottom: 1px solid var(--line); }
+.topbar .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 14px; }
+.brand { display: flex; align-items: center; gap: 10px; font-family: var(--f-display); font-weight: 750; font-stretch: 115%; letter-spacing: .02em; }
+.brand svg { flex: none; }
+.topbar nav { display: flex; gap: 18px; flex-wrap: wrap; }
+.topbar nav a { color: var(--muted); text-decoration: none; font-size: var(--step--1); }
+.topbar nav a:hover { color: var(--ink); }
+@media (max-width: 760px) { .topbar nav { display: none; } }
+
+/* ---------- Hero ---------- */
+.hero .wrap { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr); gap: clamp(24px, 5vw, 64px); align-items: center; padding-block: clamp(32px, 6vw, 72px) clamp(24px, 4vw, 48px); }
+.hero h1 { font-size: var(--step-4); font-weight: 800; font-stretch: 125%; letter-spacing: -.02em; margin-block: 14px 18px; }
+.hero h1 span { color: var(--accent); }
+.hero .lede { font-size: var(--step-1); line-height: 1.5; color: var(--muted); max-width: 34ch; }
+.hero .lede strong { color: var(--ink); font-weight: 500; }
+.cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+.btn {
+  display: inline-flex; align-items: center; gap: 8px; padding: 11px 18px; border-radius: 999px;
+  font: 600 var(--step--1)/1 var(--f-body); text-decoration: none; border: 1px solid var(--line); color: var(--ink); background: var(--surface); cursor: pointer;
+}
+.btn:hover { border-color: var(--ink); }
+.btn.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.btn.primary:hover { opacity: .9; }
+.hero figure { margin: 0; position: relative; }
+.hero figure { display: grid; justify-items: center; }
+.hero figure img { width: auto; height: auto; max-width: 100%; max-height: min(76vh, 620px); border-radius: 6px; display: block; box-shadow: var(--shadow); }
+.hero figcaption { margin-top: 10px; font-size: var(--step--1); color: var(--muted); font-family: var(--f-mono); }
+@media (max-width: 760px) {
+  .hero .wrap { grid-template-columns: 1fr; }
+  .hero figure img { max-height: 62vh; }
+}
+
+/* ---------- Fiche technique ---------- */
+.spec { border-block: 1px solid var(--line); background: var(--surface); }
+.spec .wrap { margin-block: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.spec div { padding: 18px 16px 18px 0; border-right: 1px solid var(--line); padding-left: 16px; }
+.spec div:first-child { padding-left: 0; }
+.spec div:last-child { border-right: 0; }
+.spec dt { font-family: var(--f-mono); font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.spec dd { margin: 4px 0 0; font-family: var(--f-display); font-weight: 700; font-stretch: 110%; font-size: var(--step-1); }
+@media (max-width: 860px) {
+  .spec .wrap { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .spec div { border-right: 0; border-bottom: 1px solid var(--line); padding-left: 0; }
+  .spec div:nth-child(odd) { border-right: 1px solid var(--line); }
+  .spec div:nth-child(even) { padding-left: 16px; }
+  .spec div:last-child { grid-column: 1 / -1; border-bottom: 0; border-right: 0; padding-left: 0; }
+}
+
+/* ---------- Sections ---------- */
+section.block { padding-block: clamp(48px, 8vw, 96px); }
+section.block + section.block { border-top: 1px solid var(--line); }
+.sec-head { display: grid; gap: 12px; margin-bottom: clamp(24px, 4vw, 40px); }
+.layer { display: inline-flex; align-items: center; gap: 10px; }
+.layer i { display: inline-block; width: 26px; height: 6px; border-radius: 3px; background: linear-gradient(90deg, var(--pla) 0 calc(var(--lv) * 20%), var(--line) 0); }
+
+/* ---------- Démo 3D ---------- */
+#demo { background: var(--surface); }
+.viewer-grid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: clamp(16px, 3vw, 32px); align-items: start; }
+@media (max-width: 900px) { .viewer-grid { grid-template-columns: 1fr; } }
+.stage { position: relative; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--viewer-bg); aspect-ratio: 4 / 3.4; max-width: 100%; }
+.stage canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+.stage .legend { position: absolute; left: 12px; bottom: 10px; display: flex; flex-wrap: wrap; gap: 4px 14px; font: 500 .72rem/1.3 var(--f-mono); color: var(--muted); pointer-events: none; }
+.stage .legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; background: var(--c); }
+.stage .hint { position: absolute; left: 12px; top: 10px; font: 500 .72rem/1.3 var(--f-mono); color: var(--muted); pointer-events: none; }
+.stage .fallback { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; text-align: center; color: var(--muted); }
+.panel { display: grid; gap: 18px; min-width: 0; }
+.tabs { display: inline-grid; grid-auto-flow: column; border: 1px solid var(--line); border-radius: 999px; padding: 3px; background: var(--bg); justify-self: start; }
+.tabs button { font: 600 var(--step--1)/1 var(--f-body); padding: 9px 16px; border: 0; border-radius: 999px; background: transparent; color: var(--muted); cursor: pointer; }
+.tabs button[aria-selected="true"] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
+.sliders { display: grid; gap: 10px; }
+.sl { display: grid; grid-template-columns: 7.2rem minmax(0, 1fr) 4.6rem; align-items: center; gap: 10px; }
+.sl label { font-size: var(--step--1); color: var(--muted); }
+.sl label b { font-family: var(--f-mono); font-weight: 500; color: var(--ink); margin-right: 6px; }
+.sl output { font: 500 var(--step--1)/1 var(--f-mono); text-align: right; font-variant-numeric: tabular-nums; }
+input[type="range"] { width: 100%; accent-color: var(--accent); margin: 0; }
+.toggle { display: flex; align-items: center; gap: 8px; font-size: var(--step--1); color: var(--muted); }
+.toggle input { accent-color: var(--accent); width: 16px; height: 16px; }
+.presets { display: flex; flex-wrap: wrap; gap: 8px; }
+.presets .btn { padding: 8px 14px; }
+.readout { border: 1px solid var(--line); border-radius: 8px; padding: 14px; display: grid; gap: 10px; background: var(--bg); min-width: 0; }
+.readout .row { display: flex; justify-content: space-between; gap: 12px; font-size: var(--step--1); flex-wrap: wrap; }
+.readout .row span:first-child { color: var(--muted); }
+.frame { font: 500 .78rem/1.4 var(--f-mono); color: var(--ink); background: var(--surface); border: 1px dashed var(--line); border-radius: 6px; padding: 8px 10px; overflow-x: auto; white-space: nowrap; }
+.status { font: 500 var(--step--1)/1.4 var(--f-mono); min-height: 1.4em; }
+.status.err { color: var(--warn); }
+.status.ok { color: var(--ok); }
+.viewer-note { margin-top: 18px; font-size: var(--step--1); color: var(--muted); max-width: 70ch; }
+
+/* ---------- Mécanique ---------- */
+.story { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: clamp(16px, 2.5vw, 28px); }
+.story figure { margin: 0; display: grid; gap: 10px; align-content: start; min-width: 0; }
+.story img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 6px; display: block; background: var(--line); }
+.story figcaption { font-size: var(--step--1); color: var(--muted); }
+.story figcaption b { display: block; color: var(--ink); font-weight: 600; font-size: var(--step-0); margin-bottom: 2px; }
+.story .tag { font-family: var(--f-mono); font-size: .7rem; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
+
+.two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(24px, 5vw, 56px); align-items: start; }
+@media (max-width: 860px) { .two { grid-template-columns: 1fr; } }
+
+/* ---------- Tableau articulations ---------- */
+.table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: var(--step--1); min-width: 560px; }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th { font: 500 .72rem/1.2 var(--f-mono); letter-spacing: .07em; text-transform: uppercase; color: var(--muted); background: var(--bg); }
+tr:last-child td { border-bottom: 0; }
+td.num { font-family: var(--f-mono); font-variant-numeric: tabular-nums; text-align: right; }
+th.num { text-align: right; }
+td .j { font-family: var(--f-mono); font-weight: 500; color: var(--accent); margin-right: 8px; }
+
+/* ---------- Chaîne de commande ---------- */
+.chain { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
+.chain li { display: grid; grid-template-columns: 2.2rem minmax(0, 1fr); gap: 12px; padding-block: 10px; position: relative; }
+.chain li::before { content: ""; position: absolute; left: calc(1.1rem - 1px); top: 0; bottom: 0; width: 2px; background: var(--line); }
+.chain li:first-child::before { top: 50%; }
+.chain li:last-child::before { bottom: 50%; }
+.chain .dot { position: relative; z-index: 1; width: 2.2rem; height: 2.2rem; border-radius: 50%; display: grid; place-items: center; background: var(--surface); border: 2px solid var(--pla); font: 600 .7rem/1 var(--f-mono); color: var(--accent); align-self: center; }
+.chain b { font-weight: 600; display: block; }
+.chain small { color: var(--muted); font-size: var(--step--1); }
+.callout { border-left: 3px solid var(--pla); background: var(--surface); padding: 16px 18px; border-radius: 0 8px 8px 0; display: grid; gap: 8px; }
+.callout .big { font-family: var(--f-display); font-weight: 750; font-stretch: 112%; font-size: var(--step-2); line-height: 1.1; }
+.callout p { color: var(--muted); font-size: var(--step--1); }
+
+/* ---------- Firmware / code ---------- */
+.feature-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 18px; }
+.feature-list li { display: grid; gap: 4px; padding-left: 16px; border-left: 2px solid var(--line); }
+.feature-list b { font-weight: 600; }
+.feature-list span { color: var(--muted); font-size: var(--step--1); }
+pre.code { margin: 0; font: 400 .8rem/1.55 var(--f-mono); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; overflow-x: auto; color: var(--ink); }
+pre.code .c { color: var(--muted); }
+pre.code .k { color: var(--accent); }
+
+/* ---------- Étapes IK ---------- */
+.steps { list-style: none; margin: 0; padding: 0; counter-reset: s; display: grid; gap: 14px; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 2rem minmax(0, 1fr); gap: 10px; font-size: var(--step--1); color: var(--muted); }
+.steps li::before { content: counter(s); font: 600 .8rem/2rem var(--f-mono); text-align: center; width: 2rem; height: 2rem; border-radius: 6px; background: var(--pla-soft); color: var(--accent); }
+.steps b { color: var(--ink); font-weight: 600; display: block; font-size: var(--step-0); }
+.shot { margin: 0; display: grid; gap: 10px; }
+.shot img { width: 100%; border-radius: 6px; border: 1px solid var(--line); display: block; }
+.shot figcaption { font-size: var(--step--1); color: var(--muted); }
+
+/* ---------- Pyramide ---------- */
+.pyramid { display: grid; gap: 8px; justify-items: center; }
+.pyramid .lvl { width: var(--w); max-width: 100%; border-radius: 6px; padding: 14px 16px; background: var(--surface); border: 1px solid var(--line); display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; align-items: center; }
+.pyramid .lvl.digital { border-color: var(--pla); background: var(--pla-soft); }
+.pyramid .lvl b { font-family: var(--f-display); font-weight: 700; font-stretch: 108%; }
+.pyramid .lvl small { grid-column: 1 / -1; color: var(--muted); font-size: var(--step--1); }
+@media (max-width: 640px) { .pyramid .lvl { width: 100%; } }
+.roles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: clamp(24px, 4vw, 40px); }
+@media (max-width: 860px) { .roles { grid-template-columns: 1fr; } }
+.role { border-top: 2px solid var(--pla); padding-top: 12px; display: grid; gap: 6px; }
+.role p { color: var(--muted); font-size: var(--step--1); }
+
+/* ---------- Puces d'état ---------- */
+.chip { display: inline-flex; align-items: center; gap: 6px; font: 600 .7rem/1 var(--f-mono); letter-spacing: .05em; text-transform: uppercase; padding: 5px 9px; border-radius: 999px; white-space: nowrap; }
+.chip::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.chip.ok { color: var(--ok); background: var(--ok-bg); }
+.chip.wip { color: var(--wip); background: var(--wip-bg); }
+.chip.next { color: var(--next); background: var(--next-bg); }
+.chip.today { color: var(--muted); background: var(--bg); border: 1px solid var(--line); }
+
+/* ---------- Feuille de route ---------- */
+.roadmap { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(16px, 3vw, 28px); }
+@media (max-width: 860px) { .roadmap { grid-template-columns: 1fr; } }
+.roadmap .col { display: grid; gap: 12px; align-content: start; }
+.roadmap ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.roadmap li { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; display: grid; gap: 3px; }
+.roadmap li b { font-weight: 600; font-size: var(--step--1); }
+.roadmap li span { color: var(--muted); font-size: var(--step--1); }
+.limits { margin-top: clamp(28px, 4vw, 44px); display: grid; gap: 10px; }
+.limits ul { margin: 0; padding-left: 1.1rem; color: var(--muted); display: grid; gap: 6px; max-width: 75ch; }
+.limits li strong { color: var(--ink); font-weight: 600; }
+
+/* ---------- Pied ---------- */
+footer { border-top: 1px solid var(--line); background: var(--surface); }
+footer .wrap { padding-block: 40px; display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 24px; align-items: end; }
+@media (max-width: 760px) { footer .wrap { grid-template-columns: 1fr; } }
+footer h2 { font-size: var(--step-2); }
+footer p { color: var(--muted); }
+footer .meta { font: 500 var(--step--1)/1.6 var(--f-mono); color: var(--muted); }
+</style>
+
+</head>
+<body>
+<header class="topbar">
+  <div class="wrap">
+    <div class="brand">
+      <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><rect x="3" y="20" width="20" height="4" rx="1.5" fill="var(--filament)"/><path d="M8 20 L10 12 L18 6" stroke="var(--pla)" stroke-width="3.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="10" cy="12" r="2.4" fill="var(--ink)"/><circle cx="18" cy="6" r="2.4" fill="var(--ink)"/></svg>
+      IS-ROBOTICS
+    </div>
+    <nav aria-label="Sections">
+      <a href="#demo">Démo 3D</a><a href="#mecanique">Mécanique</a><a href="#electronique">Électronique</a><a href="#firmware">Firmware</a><a href="#cinematique">Cinématique</a><a href="#jumeau">Jumeau numérique</a><a href="#feuille-de-route">Feuille de route</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="wrap">
+      <div>
+        <p class="eyebrow">ENSAM Meknès · Génie Électromécanique, option Digitalisation</p>
+        <h1>IS Robotic <span>Arm</span></h1>
+        <p class="lede">Un bras robotique <strong>5 axes</strong> conçu sous Fusion 360, imprimé en 3D avec nos propres <strong>réducteurs planétaires</strong>, piloté par un firmware temps réel et une cinématique inverse analytique. Prochaine étape : son <strong>jumeau numérique</strong> sous ROS 2.</p>
+        <div class="cta">
+          <a class="btn primary" href="#demo">Piloter le modèle 3D
+            <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M7 2v10M3 8l4 4 4-4" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+          <a class="btn" href="https://github.com/IS-Robotics/is-robotic-arm" target="_blank" rel="noopener">Code source sur GitHub</a>
+        </div>
+      </div>
+      <figure>
+        <img src="img/arm-hero.jpg" alt="Le bras robotique imprimé en 3D, blanc et pêche, coude plié, avec ses moteurs NEMA 17 et son réducteur de base visibles" width="900" height="1200">
+        <figcaption>Prototype assemblé, 5 axes motorisés · pince à venir</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="spec" aria-label="Caractéristiques principales">
+    <dl class="wrap">
+      <div><dt>Degrés de liberté</dt><dd>5 axes</dd></div>
+      <div><dt>Portée (bras + avant-bras)</dt><dd>381 mm</dd></div>
+      <div><dt>Réducteurs imprimés</dt><dd>1:16 · 1:64</dd></div>
+      <div><dt>Résolution J2/J3</dt><dd>0,0018° / pas</dd></div>
+      <div><dt>Jumeau numérique</dt><dd>ROS 2 Jazzy</dd></div>
+    </dl>
+  </section>
+
+  <!-- ===================== DÉMO ===================== -->
+  <section class="block" id="demo">
+    <div class="wrap">
+      <div class="sec-head">
+        <p class="eyebrow">Démo interactive</p>
+        <h2>Pilotez le bras depuis votre téléphone</h2>
+        <p class="prose">Le modèle 3D est chargé directement depuis <strong>l'URDF exporté de Fusion 360</strong>, le même fichier que celui de notre jumeau numérique sous ROS 2. Il est piloté par <strong>notre solveur de cinématique inverse analytique</strong>. Déplacez les articulations une par une, ou donnez une position cible à l'outil et laissez le solveur calculer les angles. La trame affichée en bas est celle qui serait envoyée à l'Arduino.</p>
+      </div>
+
+      <div class="viewer-grid">
+        <div class="stage" id="stage">
+          <canvas id="gl" aria-label="Modèle 3D interactif du bras robotique"></canvas>
+          <div class="legend" aria-hidden="true">
+            <span style="--c: var(--pla)">Zone de saisie, outil vertical</span>
+            <span style="--c: #e0574a">Cible</span>
+          </div>
+          <div class="hint" aria-hidden="true">Glisser pour tourner · pincer pour zoomer</div>
+          <div class="fallback" id="fallback" hidden>Le rendu 3D n'est pas disponible sur cet appareil. Les angles et la trame série restent calculés à droite.</div>
+        </div>
+
+        <div class="panel">
+          <div class="tabs" role="tablist" aria-label="Mode de commande">
+            <button role="tab" id="tab-joint" aria-selected="true" aria-controls="pane-joint">Articulaire (FK)</button>
+            <button role="tab" id="tab-cart" aria-selected="false" aria-controls="pane-cart">Cartésien (IK)</button>
+          </div>
+
+          <div id="pane-joint" role="tabpanel" aria-labelledby="tab-joint" class="sliders"></div>
+          <div id="pane-cart" role="tabpanel" aria-labelledby="tab-cart" class="sliders" hidden>
+            <label class="toggle"><input type="checkbox" id="elbow-up" checked> Coude vers le haut (posture de saisie)</label>
+          </div>
+
+          <div class="presets">
+            <button class="btn" type="button" data-preset="home">Repos vertical</button>
+            <button class="btn" type="button" data-preset="pick">Saisie sur la table</button>
+            <button class="btn primary" type="button" id="run-cycle">Lancer un cycle pick &amp; place</button>
+          </div>
+
+          <div class="readout" aria-live="polite">
+            <div class="row"><span>Pointe de l'outil (x, y, z)</span><span class="mono" id="ro-tip">0, 0, 650 mm</span></div>
+            <div class="row"><span>Angles J1 à J5</span><span class="mono" id="ro-angles">0 · 0 · 0 · 0 · 0°</span></div>
+            <div><span class="eyebrow">Trame série vers l'Arduino</span></div>
+            <div class="frame" id="ro-frame">&lt;T,0,0,0,0,0&gt;</div>
+            <div class="status" id="ro-status"></div>
+          </div>
+        </div>
+      </div>
+      <p class="viewer-note">Les limites articulaires sont celles mesurées sur le vrai bras (J2 ±85°, J3 ±90°, J4 ±90°). Un ordre hors limites est refusé et le bras reste sur sa dernière position valide, comme dans l'application réelle. L'anneau au sol montre où le bras peut saisir un objet avec l'outil vertical : entre environ 30 et 39 cm de l'axe de la base.</p>
+    </div>
+  </section>
+
+  <!-- ===================== MÉCANIQUE ===================== -->
+  <section class="block" id="mecanique">
+    <div class="wrap">
+      <div class="sec-head">
+        <p class="eyebrow layer"><i style="--lv:1"></i>Couche 1 · Mécanique</p>
+        <h2>Conçu et fabriqué de zéro</h2>
+        <p class="prose">Toutes les pièces structurelles et les réducteurs ont été dessinés sous <strong>Fusion 360</strong> et imprimés en FDM. Chaque choix a été testé sur prototype avant d'être retenu.</p>
+      </div>
+      <div class="story">
+        <figure><img src="img/cad.jpg" alt="Modèle CAO du bras dans Fusion 360" loading="lazy" style="object-position:50% 40%">
+          <figcaption><span class="tag">CAO</span><b>Planification sous Fusion 360</b>Modèle complet du bras, utilisé ensuite pour exporter l'URDF du jumeau numérique.</figcaption></figure>
+        <figure><img src="img/proto-helical.jpg" alt="Prototype de réducteur planétaire à dentures hélicoïdales" loading="lazy">
+          <figcaption><span class="tag">Prototype 1</span><b>Dentures hélicoïdales</b>Jeu trop important : les surplombs le long de l'hélice s'impriment mal en FDM et dégradent l'engrènement.</figcaption></figure>
+        <figure><img src="img/proto-spur.jpg" alt="Prototype de réducteur planétaire à dentures droites" loading="lazy">
+          <figcaption><span class="tag">Prototype 2</span><b>Dentures droites retenues</b>Moins de jeu, impression plus fiable, et engrènement facile à contrôler visuellement.</figcaption></figure>
+        <figure><img src="img/gears-1-64.jpg" alt="Étages internes du réducteur 1:64" loading="lazy" style="object-position:50% 45%">
+          <figcaption><span class="tag">Articulation J2</span><b>Passage de 1:16 à 1:64</b>Le 1:16 manquait de couple et de précision pour l'épaule, qui porte tout le bras. Un réducteur multi-étages 1:64 l'a remplacé.</figcaption></figure>
+        <figure><img src="img/compare-ratio.jpg" alt="Comparaison de taille entre les réducteurs 1:64 et 1:16" loading="lazy">
+          <figcaption><span class="tag">Optimisation</span><b>1:64 contre 1:16</b>Comparaison d'encombrement après la refonte CAO du réducteur 1:64.</figcaption></figure>
+        <figure><img src="img/gearbox-bearings.jpg" alt="Réducteur de la base équipé de roulements à billes" loading="lazy" style="object-position:50% 55%">
+          <figcaption><span class="tag">Articulation J1</span><b>Réducteur de base sur roulements</b>Porte-satellites guidés par roulements à billes pour limiter le frottement et le jeu.</figcaption></figure>
+        <figure><img src="img/base-pivot.jpg" alt="Pivot de base avec quatre petits roulements utilisés comme roues" loading="lazy">
+          <figcaption><span class="tag">Solution alternative</span><b>Pivot de base sur 4 roulements</b>Faute de grand roulement disponible, quatre petits roulements standard servent de roues pour la rotation de la base.</figcaption></figure>
+        <figure><img src="img/printed-parts.jpg" alt="Pièces du bras imprimées en PLA blanc et pêche" loading="lazy">
+          <figcaption><span class="tag">Fabrication</span><b>Impression optimisée</b>Orientation et paramètres d'impression ajustés pièce par pièce avant l'assemblage.</figcaption></figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== ÉLECTRONIQUE ===================== -->
+  <section class="block" id="electronique">
+    <div class="wrap">
+      <div class="sec-head">
+        <p class="eyebrow layer"><i style="--lv:2"></i>Couche 2 · Électronique et actionneurs</p>
+        <h2>Du port USB jusqu'à l'articulation</h2>
+      </div>
+      <div class="two">
+        <ol class="chain">
+          <li><span class="dot">PC</span><div><b>Application Python (PyQt5)</b><small>Cinématique et interface de téléopération, boucle à 50 Hz</small></div></li>
+          <li><span class="dot">USB</span><div><b>Liaison série 115 200 bauds</b><small>Trames balisées &lt;T,…&gt;, accusé de réception</small></div></li>
+          <li><span class="dot">MCU</span><div><b>Arduino Mega 2560 + RAMPS 1.4</b><small>Génération des impulsions de pas en temps réel</small></div></li>
+          <li><span class="dot">×5</span><div><b>Drivers TMC2209</b><small>Micropas 1/16, fonctionnement silencieux</small></div></li>
+          <li><span class="dot">×5</span><div><b>Moteurs pas à pas NEMA 17 (17HS4401)</b><small>200 pas/tour, alimentation 12 V 360 W</small></div></li>
+          <li><span class="dot">J</span><div><b>Réducteurs planétaires imprimés</b><small>1:16 sur J1, J4, J5 · 1:64 sur J2, J3</small></div></li>
+        </ol>
+        <div style="display:grid; gap:20px; min-width:0">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Articulation</th><th>Réduction</th><th class="num">Pas / degré</th><th class="num">Débattement</th></tr></thead>
+              <tbody>
+                <tr><td><span class="j">J1</span>Base (lacet)</td><td>1:16</td><td class="num">142,2</td><td class="num">±180°</td></tr>
+                <tr><td><span class="j">J2</span>Épaule</td><td>1:64</td><td class="num">568,9</td><td class="num">±85°</td></tr>
+                <tr><td><span class="j">J3</span>Coude</td><td>1:64</td><td class="num">568,9</td><td class="num">±90°</td></tr>
+                <tr><td><span class="j">J4</span>Poignet (tangage)</td><td>1:16</td><td class="num">142,2</td><td class="num">±90°</td></tr>
+                <tr><td><span class="j">J5</span>Poignet (roulis)</td><td>1:16</td><td class="num">142,2</td><td class="num">±180°</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="callout">
+            <span class="eyebrow">Calibration expérimentale</span>
+            <p class="big">90° commandés, 45° mesurés.</p>
+            <p>Les premiers essais tournaient exactement de moitié. En confrontant mesure et calcul, nous avons identifié un micropas réel de 1/16 au lieu de 1/8 : pas/degré = 200 × 16 × réduction / 360. Les sens de rotation de J3 et J4, inversés par le montage des moteurs, sont corrigés dans le logiciel.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== FIRMWARE ===================== -->
+  <section class="block" id="firmware">
+    <div class="wrap">
+      <div class="sec-head">
+        <p class="eyebrow layer"><i style="--lv:3"></i>Couche 3 · Firmware temps réel</p>
+        <h2>Cinq moteurs synchronisés sans bloquer</h2>
+        <p class="prose">L'Arduino ne calcule aucune géométrie. Il reçoit des consignes en pas et se consacre à une seule tâche : générer des impulsions régulières et coordonnées.</p>
+      </div>
+      <div class="two">
+        <ul class="feature-list">
+          <li><b>Interruption matérielle Timer1</b><span>Les impulsions sont générées dans une routine d'interruption. La boucle principale reste libre pour lire le port série.</span></li>
+          <li><b>Synchronisation multi-axes par Bresenham</b><span>Algorithme de tracé de ligne étendu à 5 dimensions : tous les axes démarrent et arrivent en même temps, quelle que soit leur distance à parcourir.</span></li>
+          <li><b>Profil de vitesse trapézoïdal</b><span>Accélération et décélération calculées pas à pas (algorithme de David Austin) pour éviter les pertes de pas au démarrage.</span></li>
+          <li><b>Protocole série robuste au bruit</b><span>Trames délimitées par &lt; et &gt;, lecture non bloquante, et poignée de main : la consigne suivante n'est envoyée qu'une fois le mouvement terminé.</span></li>
+        </ul>
+        <pre class="code" aria-label="Exemple d'échange série"><span class="c">// PC → Arduino : consigne absolue en pas (J1…J5)</span>
+<span class="k">&lt;T,0,-33766,37973,7665,0&gt;</span>  <span class="c">// pince sur la table</span>
+
+<span class="c">// Arduino → PC</span>
+ACK:MOVING
+ACK:IDLE
+
+<span class="c">// Pas/degré = 200 × 16 × réduction / 360</span>
+J1, J4, J5 : 142,222   <span class="c">// 1:16</span>
+J2, J3     : 568,889   <span class="c">// 1:64</span></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== CINÉMATIQUE ===================== -->
+  <section class="block" id="cinematique">
+    <div class="wrap">
+      <div class="sec-head">
+        <p class="eyebrow layer"><i style="--lv:4"></i>Couche 4 · Cinématique</p>
+        <h2>Modèle DH et cinématique inverse analytique</h2>
+        <p class="prose">Le bras est modélisé avec la convention <strong>Denavit-Hartenberg standard</strong>, avec des longueurs extraites de la CAO. Validé contre l'URDF : <strong>écart inférieur à 1 mm</strong> sur 2 000 poses aléatoires. La cinématique inverse est résolue de façon analytique, sans itération, ce qui la rend assez rapide pour la téléopération en temps réel.</p>
+      </div>
+      <div class="two">
+        <div style="display:grid; gap:24px; min-width:0">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>i</th><th class="num">α (°)</th><th class="num">a (m)</th><th class="num">d (m)</th><th class="num">θ offset (°)</th></tr></thead>
+              <tbody>
+                <tr><td><span class="j">1</span></td><td class="num">90</td><td class="num">0,0224</td><td class="num">0,1846</td><td class="num">0</td></tr>
+                <tr><td><span class="j">2</span></td><td class="num">0</td><td class="num">0,1875</td><td class="num">0</td><td class="num">90</td></tr>
+                <tr><td><span class="j">3</span></td><td class="num">0</td><td class="num">0,1935</td><td class="num">0</td><td class="num">0</td></tr>
+                <tr><td><span class="j">4</span></td><td class="num">90</td><td class="num">0</td><td class="num">0</td><td class="num">90</td></tr>
+                <tr><td><span class="j">5</span></td><td class="num">0</td><td class="num">0</td><td class="num">0,146</td><td class="num">0</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <ol class="steps">
+            <li><div><b>Angle de base</b>θ₁ = atan2(y, x) ; sur l'axe de la base (singularité atan2(0, 0)), θ₁ est fixé au lieu d'être tiré au hasard.</div></li>
+            <li><div><b>Découplage du poignet</b>On recule de d₅ le long de l'axe de l'outil pour obtenir le centre du poignet, avec une distance radiale signée : le poignet peut passer derrière l'axe de la base.</div></li>
+            <li><div><b>Bras plan à 2 segments</b>θ₂ et θ₃ par la loi des cosinus dans le plan du bras, en tenant compte du décalage d'épaule a₁, avec choix de posture coude haut ou coude bas.</div></li>
+            <li><div><b>Orientation de l'outil</b>θ₄ = tangage − θ₂ − θ₃ ; θ₅ donne directement le roulis.</div></li>
+            <li><div><b>Contrôle des limites</b>Toute solution hors des débattements mesurés est refusée avant d'être envoyée aux moteurs.</div></li>
+          </ol>
+        </div>
+        <figure class="shot">
+          <img src="img/ik-app.jpg" alt="Capture de l'application Python de cinématique inverse avec le modèle 3D du bras et les curseurs de consigne" loading="lazy">
+          <figcaption>Notre outil de téléopération (PyQt5 + OpenGL) : consigne cartésienne X, Y, Z, tangage et roulis, rendu 3D du modèle DH, et refus des positions hors limites.</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== JUMEAU NUMÉRIQUE ===================== -->
+  <section class="block" id="jumeau">
+    <div class="wrap">
+      <div class="sec-head">
+        <p class="eyebrow layer"><i style="--lv:5"></i>Couche 5 · Jumeau numérique</p>
+        <h2>Vers un jumeau numérique bidirectionnel</h2>
+        <p class="prose">Le modèle Fusion 360 est exporté en <strong>URDF</strong> puis intégré à <strong>ROS 2 Jazzy</strong>, avec Gazebo pour la simulation physique, MoveIt 2 pour la planification et ros2_control pour le lien avec le matériel. L'architecture cible reprend les niveaux de la pyramide de l'automatisation.</p>
+      </div>
+      <div class="two">
+        <div class="pyramid" aria-label="Architecture cible en niveaux">
+          <div class="lvl digital" style="--w: 62%"><b>Numérique</b><span class="chip next">Cible</span><small>PC · Gazebo, MoveIt 2, RViz : simulation et planification</small></div>
+          <div class="lvl" style="--w: 74%"><b>Supervision</b><span class="chip next">Cible</span><small>IHM sur écran tactile embarqué</small></div>
+          <div class="lvl" style="--w: 87%"><b>Contrôle</b><span class="chip wip">En cours</span><small>Raspberry Pi 4 · ROS 2, ros2_control (aujourd'hui : PC + Python)</small></div>
+          <div class="lvl" style="--w: 100%"><b>Terrain</b><span class="chip ok">Fait</span><small>Arduino Mega + RAMPS · TMC2209 · NEMA 17 · réducteurs imprimés</small></div>
+        </div>
+        <div class="prose" style="display:grid; gap:14px">
+          <p>Un simple affichage 3D qui recopie les consignes reste un <strong>modèle numérique</strong>. Pour parler de <strong>jumeau</strong>, les données doivent circuler automatiquement dans les deux sens : les consignes vers le bras, et l'état réel du bras vers le modèle.</p>
+          <p>C'est pourquoi nous prévoyons des <strong>codeurs magnétiques absolus AS5600</strong> en sortie de chaque réducteur. Ils mesurent l'angle réel des articulations, jeu des engrenages compris, et suppriment la prise d'origine manuelle au démarrage.</p>
+          <p>Le Raspberry Pi rend le bras autonome et en fait un nœud ROS 2 sur le réseau : une architecture de calcul en périphérie, avec une interface centrée sur l'opérateur, dans l'esprit de l'Industrie 5.0.</p>
+        </div>
+      </div>
+      <div class="roles">
+        <div class="role"><h3>Valider avant d'exécuter</h3><p>Chaque trajectoire est d'abord jouée dans Gazebo : limites articulaires et collisions avec la table ou le bras lui-même sont vérifiées avant d'atteindre le matériel.</p></div>
+        <div class="role"><h3>Programmer hors ligne</h3><p>Une séquence de pick &amp; place se met au point dans la simulation, puis s'exécute sur le vrai bras. Le principe de la mise en service virtuelle.</p></div>
+        <div class="role"><h3>Surveiller le bras réel</h3><p>Avec les codeurs, l'écart entre position commandée et position mesurée révèle les pertes de pas, les surcharges et l'usure des réducteurs.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== FEUILLE DE ROUTE ===================== -->
+  <section class="block" id="feuille-de-route">
+    <div class="wrap">
+      <div class="sec-head">
+        <p class="eyebrow">Feuille de route</p>
+        <h2>Où en est le projet</h2>
+      </div>
+      <div class="roadmap">
+        <div class="col">
+          <span class="chip ok">Fait</span>
+          <ul>
+            <li><b>CAO complète du bras</b><span>Fusion 360, 5 axes</span></li>
+            <li><b>Réducteurs planétaires 1:16 et 1:64</b><span>Deux prototypes, dentures droites retenues</span></li>
+            <li><b>Assemblage et motorisation des 5 axes</b><span>NEMA 17 + TMC2209 sur RAMPS 1.4</span></li>
+            <li><b>Firmware temps réel</b><span>Timer1, Bresenham, profil trapézoïdal</span></li>
+            <li><b>Cinématique directe et inverse</b><span>Outils PyQt5 et téléopération série</span></li>
+            <li><b>Calibration des axes</b><span>Micropas, sens de rotation, limites mesurées</span></li>
+          </ul>
+        </div>
+        <div class="col">
+          <span class="chip wip">En cours</span>
+          <ul>
+            <li><b>URDF et intégration ROS 2 / Gazebo</b><span>Export depuis Fusion 360, conversion en Xacro</span></li>
+            <li><b>Mouvements fluides en téléopération</b><span>Enchaînement des consignes sans arrêt entre chaque point</span></li>
+            <li><b>Pince</b><span>Conception de l'effecteur, mise à jour de d₅</span></li>
+          </ul>
+        </div>
+        <div class="col">
+          <span class="chip next">Prochaines étapes</span>
+          <ul>
+            <li><b>Codeurs absolus AS5600</b><span>Retour de position réel, plus de prise d'origine manuelle</span></li>
+            <li><b>Interface matérielle ros2_control</b><span>Même code en simulation et sur le bras réel</span></li>
+            <li><b>Raspberry Pi 4 et IHM tactile</b><span>Bras autonome, contrôle en périphérie</span></li>
+            <li><b>MoveIt 2 : pick &amp; place planifié</b><span>Trajectoires sans collision</span></li>
+            <li><b>Arrêt d'urgence matériel</b><span>Coupure de la puissance moteurs, électronique maintenue</span></li>
+          </ul>
+        </div>
+      </div>
+      <div class="limits">
+        <p class="eyebrow">Limites actuelles, connues et assumées</p>
+        <ul>
+          <li><strong>Boucle ouverte :</strong> sans codeur, le contrôleur ne peut pas détecter une perte de pas sous charge.</li>
+          <li><strong>Prise d'origine manuelle :</strong> le bras doit être mis à la verticale avant chaque mise sous tension.</li>
+          <li><strong>Jeu des réducteurs imprimés :</strong> il limite la précision réelle bien en dessous de la résolution théorique des moteurs.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div style="display:grid; gap:10px">
+      <p class="eyebrow">Équipe IS-Robotics</p>
+      <h2>Un projet personnel, mené en dehors des cours</h2>
+      <p>Élèves ingénieurs en Génie Électromécanique, option Digitalisation, à l'ENSAM Meknès. Mécanique, électronique, logiciel et jumeau numérique : nous construisons toute la chaîne nous-mêmes, et nous serions heureux d'échanger sur la suite du projet.</p>
+    </div>
+    <div class="meta">
+      <a href="https://github.com/IS-Robotics/is-robotic-arm" target="_blank" rel="noopener">github.com/IS-Robotics/is-robotic-arm</a><br>
+      Mis à jour en octobre 2026
+    </div>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/STLLoader.js"></script>
+<script>
+/* ===================== Cinématique (portage du code Python) ===================== */
+const GEOM = { d1: 0.184552, a1: 0.02235, a2: 0.1875, a3: 0.1935, d5: 0.146 };
+const DH = [
+  { alpha: 90, a: GEOM.a1, d: GEOM.d1, off: 0 },
+  { alpha: 0,  a: GEOM.a2, d: 0,       off: 90 },
+  { alpha: 0,  a: GEOM.a3, d: 0,       off: 0 },
+  { alpha: 90, a: 0,       d: 0,       off: 90 },
+  { alpha: 0,  a: 0,       d: GEOM.d5, off: 0 },
+];
+const LIMITS = [[-180, 180], [-85, 85], [-90, 90], [-90, 90], [-180, 180]];
+const STEPS_PER_DEG = [142.222, 568.888, 568.888, 142.222, 142.222];
+const DIR_SIGNS = [1, 1, -1, -1, 1];
+const TABLE_Z = -0.0249;   // dessous de la base dans le repère base_link de l'URDF
+const RAD = Math.PI / 180;
+
+function matMul(A, B) {
+  const C = new Array(16).fill(0);
+  for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) {
+    let s = 0; for (let k = 0; k < 4; k++) s += A[r * 4 + k] * B[k * 4 + c]; C[r * 4 + c] = s;
+  }
+  return C;
+}
+function dhMatrix(alpha, a, d, theta) {
+  const ct = Math.cos(theta), st = Math.sin(theta), ca = Math.cos(alpha), sa = Math.sin(alpha);
+  return [ct, -st * ca, st * sa, a * ct,
+          st, ct * ca, -ct * sa, a * st,
+          0, sa, ca, d,
+          0, 0, 0, 1];
+}
+/** Retourne les 6 repères (base + J1..J5) en matrices 4x4 ligne-major. */
+function forwardKinematics(thetasDeg) {
+  let T = [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1];
+  const frames = [T];
+  for (let i = 0; i < 5; i++) {
+    const r = DH[i];
+    T = matMul(T, dhMatrix(r.alpha * RAD, r.a, r.d, (thetasDeg[i] + r.off) * RAD));
+    frames.push(T);
+  }
+  return frames;
+}
+/** IK 5 axes : (x,y,z) = pointe outil J5. Retourne {ok, thetas | msg}. */
+function inverseKinematics(x, y, z, pitchDeg, rollDeg, elbowDown) {
+  const { d1, a1, a2, a3, d5 } = GEOM;
+  const pitch = pitchDeg * RAD;
+  // Le centre du poignet est sur la même verticale radiale que la pointe : on garde
+  // l'azimut de la pointe et une distance radiale SIGNÉE (négative = poignet derrière l'axe J1).
+  const rTip = Math.hypot(x, y);
+  const t1 = rTip > 1e-6 ? Math.atan2(y, x) : 0;
+  const rw = rTip - d5 * Math.cos(pitch);
+  const zw = z - d5 * Math.sin(pitch);
+  const rc = rw - a1, zc = zw - d1, Dsq = rc * rc + zc * zc, D = Math.sqrt(Dsq);
+  if (D > a2 + a3 + 1e-3) return { ok: false, msg: `Hors de portée : centre poignet à ${(D * 1000).toFixed(0)} mm (max ${((a2 + a3) * 1000).toFixed(0)} mm)` };
+  if (D < Math.abs(a2 - a3) + 1e-6 && Math.abs(a2 - a3) > 0) return { ok: false, msg: 'Trop proche de la base' };
+  let C3 = (Dsq - a2 * a2 - a3 * a3) / (2 * a2 * a3); C3 = Math.max(-1, Math.min(1, C3));
+  const S3m = Math.sqrt(1 - C3 * C3), S3 = elbowDown ? S3m : -S3m;
+  const t3 = Math.atan2(S3, C3);
+  const beta = Math.atan2(zc, rc);
+  let Cpsi = D > 1e-9 ? (Dsq + a2 * a2 - a3 * a3) / (2 * D * a2) : 1; Cpsi = Math.max(-1, Math.min(1, Cpsi));
+  const psi = Math.atan2(Math.sqrt(1 - Cpsi * Cpsi), Cpsi);
+  const t2 = elbowDown ? beta - psi : beta + psi;
+  const t4 = pitch - t2 - t3;
+  const th = [t1 / RAD, t2 / RAD - 90, t3 / RAD, t4 / RAD, rollDeg];
+  for (let i = 0; i < 5; i++) {
+    if (th[i] < LIMITS[i][0] - 1e-6 || th[i] > LIMITS[i][1] + 1e-6)
+      return { ok: false, msg: `Limite J${i + 1} : ${th[i].toFixed(1)}° hors de [${LIMITS[i][0]}°, ${LIMITS[i][1]}°]` };
+  }
+  return { ok: true, thetas: th };
+}
+const anglesToSteps = th => th.map((t, i) => Math.round(t * STEPS_PER_DEG[i] * DIR_SIGNS[i]));
+
+/* ===================== État & interface ===================== */
+const state = {
+  thetas: [0, 0, 0, 0, 0],
+  target: { x: 0.02235, y: 0, z: 0.7116, pitch: 90, roll: 0 },
+  mode: 'joint', elbowUp: true, animating: false,
+};
+const $ = s => document.querySelector(s);
+const fmt = (v, d = 1) => (Math.abs(v) < 0.05 && d === 1 ? 0 : v).toFixed(d).replace('.', ',').replace(/^-0(,0+)?$/, '0');
+
+const JOINT_LABELS = ['Base', 'Épaule', 'Coude', 'Poignet ↕', 'Poignet ↻'];
+const CART = [
+  { key: 'x', label: 'X avant', min: -0.55, max: 0.55, step: 0.005, unit: 'mm', scale: 1000 },
+  { key: 'y', label: 'Y gauche', min: -0.55, max: 0.55, step: 0.005, unit: 'mm', scale: 1000 },
+  { key: 'z', label: 'Z haut', min: -0.03, max: 0.75, step: 0.005, unit: 'mm', scale: 1000 },
+  { key: 'pitch', label: 'Tangage', min: -90, max: 90, step: 1, unit: '°', scale: 1 },
+  { key: 'roll', label: 'Roulis', min: -180, max: 180, step: 1, unit: '°', scale: 1 },
+];
+const jointInputs = [], cartInputs = {};
+
+function makeSlider(parent, id, labelHTML, min, max, step, value, onInput) {
+  const row = document.createElement('div'); row.className = 'sl';
+  row.innerHTML = `<label for="${id}">${labelHTML}</label><input type="range" id="${id}" min="${min}" max="${max}" step="${step}" value="${value}"><output for="${id}"></output>`;
+  parent.appendChild(row);
+  const input = row.querySelector('input'), out = row.querySelector('output');
+  input.addEventListener('input', () => onInput(parseFloat(input.value)));
+  return { input, out };
+}
+LIMITS.forEach((lim, i) => {
+  const s = makeSlider($('#pane-joint'), `j${i + 1}`, `<b>J${i + 1}</b>${JOINT_LABELS[i]}`, lim[0], lim[1], 0.5, 0, v => {
+    state.thetas[i] = v; render();
+  });
+  jointInputs.push(s);
+});
+const cartPane = $('#pane-cart');
+CART.forEach(c => {
+  const s = makeSlider(cartPane, `c-${c.key}`, c.label, c.min, c.max, c.step, state.target[c.key], v => {
+    state.target[c.key] = v; solveTarget();
+  });
+  cartInputs[c.key] = s;
+});
+cartPane.appendChild(cartPane.querySelector('.toggle'));
+$('#elbow-up').addEventListener('change', e => { state.elbowUp = e.target.checked; solveTarget(); });
+
+function setStatus(msg, kind) { const el = $('#ro-status'); el.textContent = msg || ''; el.className = 'status' + (kind ? ' ' + kind : ''); }
+
+function solveTarget() {
+  const t = state.target;
+  const r = inverseKinematics(t.x, t.y, t.z, t.pitch, t.roll, !state.elbowUp);
+  if (r.ok) { state.thetas = r.thetas; setStatus('Solution trouvée et dans les limites', 'ok'); }
+  else setStatus(r.msg + '. Le bras reste sur sa dernière position valide.', 'err');
+  targetOk = r.ok;
+  render();
+}
+let targetOk = true;
+
+function syncSliders() {
+  state.thetas.forEach((v, i) => { jointInputs[i].input.value = v; jointInputs[i].out.textContent = fmt(v) + '°'; });
+  CART.forEach(c => { cartInputs[c.key].input.value = state.target[c.key]; cartInputs[c.key].out.textContent = fmt(state.target[c.key] * c.scale, 0) + (c.unit === '°' ? '°' : ''); });
+}
+function tipOf(th) { const F = forwardKinematics(th)[5]; return { x: F[3], y: F[7], z: F[11], zx: F[2], zy: F[6], zz: F[10] }; }
+
+function render() {
+  const tip = tipOf(state.thetas);
+  syncSliders();
+  $('#ro-tip').textContent = `${fmt(tip.x * 1000, 0)}, ${fmt(tip.y * 1000, 0)}, ${fmt(tip.z * 1000, 0)} mm`;
+  $('#ro-angles').textContent = state.thetas.map(v => fmt(v)).join(' · ') + '°';
+  const s = anglesToSteps(state.thetas);
+  $('#ro-frame').textContent = `<T,${s.join(',')}>`;
+  if (scene3d) scene3d.update(state.thetas, state.mode === 'cart' ? state.target : null, targetOk);
+}
+
+/* Onglets */
+function setMode(m) {
+  if (state.animating) return;
+  state.mode = m;
+  $('#tab-joint').setAttribute('aria-selected', m === 'joint');
+  $('#tab-cart').setAttribute('aria-selected', m === 'cart');
+  $('#pane-joint').hidden = m !== 'joint';
+  $('#pane-cart').hidden = m !== 'cart';
+  if (m === 'cart') {
+    const tip = tipOf(state.thetas);
+    state.target = { x: tip.x, y: tip.y, z: tip.z, pitch: Math.asin(Math.max(-1, Math.min(1, tip.zz))) / RAD, roll: state.thetas[4] };
+    CART.forEach(c => { state.target[c.key] = Math.max(c.min, Math.min(c.max, state.target[c.key])); });
+    targetOk = true; setStatus('');
+    render();
+  } else { setStatus(''); targetOk = true; render(); }
+}
+$('#tab-joint').addEventListener('click', () => setMode('joint'));
+$('#tab-cart').addEventListener('click', () => setMode('cart'));
+document.querySelector('.tabs').addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { const next = state.mode === 'joint' ? 'cart' : 'joint'; setMode(next); $('#tab-' + next).focus(); }
+});
+
+/* Préréglages */
+const PICK_A = { x: 0.3195, y: -0.1163 }, PICK_B = { x: 0.2404, y: 0.2404 };
+const Z_ABOVE = TABLE_Z + 0.13, Z_GRAB = TABLE_Z + 0.045;
+function ikOrThrow(x, y, z, pitch = -90) { const r = inverseKinematics(x, y, z, pitch, 0, false); if (!r.ok) throw new Error(r.msg); return r.thetas; }
+function goTo(thetas, target) {
+  state.thetas = thetas.slice(); if (target) state.target = { ...target }; targetOk = true; setStatus(''); render();
+}
+document.querySelectorAll('[data-preset]').forEach(b => b.addEventListener('click', () => {
+  if (state.animating) return;
+  if (b.dataset.preset === 'home') goTo([0, 0, 0, 0, 0], { x: 0.02235, y: 0, z: 0.7116, pitch: 90, roll: 0 });
+  else goTo(ikOrThrow(0.34, 0, Z_GRAB), { x: 0.34, y: 0, z: Z_GRAB, pitch: -90, roll: 0 });
+}));
+
+/* Cycle pick & place animé : interpolation articulaire et cartésienne (cylindrique) */
+const ease = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+const lerp = (a, b, t) => a + (b - a) * t;
+function cyl(p) { return { r: Math.hypot(p.x, p.y), phi: Math.atan2(p.y, p.x), z: p.z }; }
+function buildCycle() {
+  const aAbove = { ...PICK_A, z: Z_ABOVE }, aGrab = { ...PICK_A, z: Z_GRAB };
+  const bAbove = { ...PICK_B, z: Z_ABOVE }, bGrab = { ...PICK_B, z: Z_GRAB };
+  const J = p => ikOrThrow(p.x, p.y, p.z);
+  return [
+    { type: 'joint', from: state.thetas.slice(), to: J(aAbove), dur: 1500 },
+    { type: 'cart', from: aAbove, to: aGrab, dur: 900 },
+    { type: 'wait', dur: 350, event: 'grab' },
+    { type: 'cart', from: aGrab, to: aAbove, dur: 800 },
+    { type: 'cart', from: aAbove, to: bAbove, dur: 1700 },
+    { type: 'cart', from: bAbove, to: bGrab, dur: 900 },
+    { type: 'wait', dur: 350, event: 'release' },
+    { type: 'cart', from: bGrab, to: bAbove, dur: 800 },
+    { type: 'joint', from: J(bAbove), to: [0, 0, 0, 0, 0], dur: 1600 },
+  ];
+}
+function runCycle() {
+  if (state.animating) return;
+  let segs; try { segs = buildCycle(); } catch (e) { setStatus(e.message, 'err'); return; }
+  setMode('joint'); state.animating = true;
+  document.querySelectorAll('.panel input, .panel button').forEach(el => el.disabled = true);
+  setStatus('Cycle en cours : approche, saisie, transfert, dépose', 'ok');
+  if (scene3d) scene3d.resetPart(PICK_A);
+  let i = 0, t0 = performance.now();
+  function step(now) {
+    const seg = segs[i]; const t = Math.min(1, (now - t0) / seg.dur), k = ease(t);
+    if (seg.type === 'joint') state.thetas = seg.from.map((a, j) => lerp(a, seg.to[j], k));
+    else if (seg.type === 'cart') {
+      const A = cyl(seg.from), B = cyl(seg.to);
+      let dphi = B.phi - A.phi; if (dphi > Math.PI) dphi -= 2 * Math.PI; if (dphi < -Math.PI) dphi += 2 * Math.PI;
+      const r = lerp(A.r, B.r, k), phi = A.phi + dphi * k, z = lerp(A.z, B.z, k);
+      const res = inverseKinematics(r * Math.cos(phi), r * Math.sin(phi), z, -90, 0, false);
+      if (res.ok) state.thetas = res.thetas;
+    }
+    render();
+    if (t >= 1) {
+      if (seg.event && scene3d) scene3d.setGrip(seg.event === 'grab');
+      i++; t0 = now;
+      if (i >= segs.length) {
+        state.animating = false;
+        document.querySelectorAll('.panel input, .panel button').forEach(el => el.disabled = false);
+        setStatus('Cycle terminé : pièce déposée, retour au repos', 'ok');
+        return;
+      }
+    }
+    requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+$('#run-cycle').addEventListener('click', runCycle);
+
+/* ===================== Rendu 3D (three.js + URDF) ===================== */
+let scene3d = null;
+/* Arbre cinématique extrait de robotic-arm_v6_full.xacro (Fusion 360 → URDF).
+   sign : passage de nos angles (convention DH, 0° = vertical) aux angles URDF. */
+const URDF = {
+  j1: [-0.05458, 0.105347, 0.130052],
+  links: [
+    { name: 'base_link', vis: [0, 0, 0], mat: 'white' },
+    { name: 'link_1_1', vis: [0.05458, -0.105347, -0.130052], mat: 'white' },
+    { name: 'link_2_1', vis: [0.03223, -0.071347, -0.184552], mat: 'pla' },
+    { name: 'link_3_1', vis: [0.03223, -0.077347, -0.372052], mat: 'pla' },
+    { name: 'link_4_1', vis: [0.03223, -0.159347, -0.565552], mat: 'white' },
+    { name: 'link_5_1', vis: [0.032059, -0.106347, -0.656552], mat: 'grey' },
+  ],
+  joints: [
+    { xyz: [-0.05458, 0.105347, 0.130052], axis: [0, 0, -1], sign: -1 },
+    { xyz: [0.02235, -0.034, 0.0545], axis: [0, -1, 0], sign: 1 },
+    { xyz: [0, 0.006, 0.1875], axis: [0, -1, 0], sign: 1 },
+    { xyz: [0, 0.082, 0.1935], axis: [0, -1, 0], sign: 1 },
+    { xyz: [0.000171, -0.053, 0.091], axis: [0, 0, 1], sign: 1 },
+  ],
+};
+function css(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+function initScene() {
+  if (!window.THREE) throw new Error('three.js indisponible');
+  const canvas = $('#gl'), stage = $('#stage');
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(36, 1, 0.01, 20);
+  camera.position.set(1.18, 0.82, 1.24);
+  const controls = THREE.OrbitControls ? new THREE.OrbitControls(camera, canvas) : null;
+  if (controls) { controls.target.set(0.05, 0.31, 0); controls.enableDamping = true; controls.minDistance = 0.45; controls.maxDistance = 3; controls.maxPolarAngle = Math.PI * 0.495; controls.enablePan = false; controls.update(); }
+  else camera.lookAt(0.05, 0.31, 0);
+
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x8a8f99, 0.8));
+  const sun = new THREE.DirectionalLight(0xffffff, 0.75); sun.position.set(1.2, 2, 0.9); scene.add(sun);
+  const fill = new THREE.DirectionalLight(0xffffff, 0.25); fill.position.set(-1, 0.6, -0.8); scene.add(fill);
+
+  const v3 = (x, y, z) => new THREE.Vector3(x, z, -y);   // repère robot (z haut) → three (y haut)
+  const M = {
+    white: new THREE.MeshStandardMaterial({ roughness: 0.55, metalness: 0.02 }),
+    pla: new THREE.MeshStandardMaterial({ color: 0xe9a385, roughness: 0.6 }),
+    grey: new THREE.MeshStandardMaterial({ color: 0x8b919b, roughness: 0.5, metalness: 0.15 }),
+    dark: new THREE.MeshStandardMaterial({ color: 0x2a2d33, roughness: 0.6 }),
+  };
+
+  let grid = null;
+  const ring = new THREE.Mesh(new THREE.RingGeometry(0.295, 0.395, 96), new THREE.MeshBasicMaterial({ color: 0xe9a385, transparent: true, opacity: 0.28, side: THREE.DoubleSide, depthWrite: false }));
+  ring.rotation.x = -Math.PI / 2; ring.position.y = TABLE_Z + 0.0015; scene.add(ring);
+
+  /* --- Modèle URDF (maillages STL) --- */
+  const robot = new THREE.Group(); robot.rotation.x = -Math.PI / 2; robot.visible = false; scene.add(robot);
+  const recentre = new THREE.Group(); recentre.position.set(-URDF.j1[0], -URDF.j1[1], 0); robot.add(recentre);
+  const linkGroups = [], jointRots = [];
+  let parent = recentre;
+  URDF.links.forEach((L, i) => {
+    if (i > 0) {
+      const J = URDF.joints[i - 1];
+      const jg = new THREE.Group(); jg.position.set(...J.xyz); parent.add(jg);
+      const rot = new THREE.Group(); jg.add(rot); jointRots.push(rot); parent = rot;
+    }
+    const lg = new THREE.Group(); parent.add(lg); linkGroups.push(lg); parent = lg;
+  });
+
+  /* --- Modèle simplifié affiché pendant le chargement (ou si les STL échouent) --- */
+  const simple = new THREE.Group(); scene.add(simple);
+  const cylG = (r, mat) => new THREE.Mesh(new THREE.CylinderGeometry(r, r, 1, 28), mat);
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.1, 0.155, 48), M.white); base.position.y = TABLE_Z + 0.0775; simple.add(base);
+  const link1s = cylG(0.03, M.white), link2 = cylG(0.026, M.pla), link3 = cylG(0.023, M.pla), link5 = cylG(0.02, M.grey);
+  [link1s, link2, link3, link5].forEach(m => simple.add(m));
+
+  const fingerL = new THREE.Mesh(new THREE.BoxGeometry(0.008, 0.032, 0.014), M.grey), fingerR = fingerL.clone();
+  scene.add(fingerL, fingerR);
+  const axes = new THREE.AxesHelper(0.06); scene.add(axes);
+  const target = new THREE.Mesh(new THREE.SphereGeometry(0.011, 20, 14), new THREE.MeshBasicMaterial({ color: 0xe0574a })); scene.add(target);
+  const part = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.04, 0.04), new THREE.MeshStandardMaterial({ color: 0x4f7dd6, roughness: 0.45 }));
+  part.visible = false; scene.add(part);
+  let gripping = false, needs = true, lastTh = [0, 0, 0, 0, 0], lastTgt = null, lastOk = true;
+
+  // Maillages STL de l'URDF, regroupés en base64 dans un JSON (format servi par l'hébergeur)
+  if (THREE.STLLoader) {
+    const loader = new THREE.STLLoader();
+    fetch('urdf/meshes.json').then(r => r.json()).then(data => {
+      URDF.links.forEach((L, i) => {
+        const bin = atob(data[L.name]), buf = new Uint8Array(bin.length);
+        for (let k = 0; k < bin.length; k++) buf[k] = bin.charCodeAt(k);
+        const geo = loader.parse(buf.buffer); geo.computeVertexNormals();
+        const mesh = new THREE.Mesh(geo, M[L.mat]);
+        mesh.scale.setScalar(0.001); mesh.position.set(...L.vis);
+        linkGroups[i].add(mesh);
+      });
+      robot.visible = true; simple.visible = false; update(lastTh, lastTgt, lastOk);
+    }).catch(() => { /* on garde le modèle simplifié */ });
+  }
+
+  const up = new THREE.Vector3(0, 1, 0);
+  function placeBetween(mesh, a, b) {
+    const dir = new THREE.Vector3().subVectors(b, a); const len = dir.length();
+    mesh.visible = len > 1e-4; if (!mesh.visible) return;
+    mesh.position.copy(a).addScaledVector(dir, 0.5); mesh.scale.set(1, len, 1);
+    mesh.quaternion.setFromUnitVectors(up, dir.normalize());
+  }
+  function theme() {
+    renderer.setClearColor(new THREE.Color(css('--viewer-bg') || '#e9ebef'), 1);
+    M.white.color.set(css('--viewer-white') || '#f4f4f2');
+    if (grid) scene.remove(grid);
+    grid = new THREE.GridHelper(1.4, 28, new THREE.Color(css('--viewer-grid') || '#c9cdd5'), new THREE.Color(css('--viewer-grid2') || '#dde0e5'));
+    grid.position.y = TABLE_Z; scene.add(grid);
+    needs = true;
+  }
+  function update(th, tgt, ok) {
+    lastTh = th.slice(); lastTgt = tgt; lastOk = ok;
+    jointRots.forEach((r, i) => { const J = URDF.joints[i]; r.quaternion.setFromAxisAngle(new THREE.Vector3(...J.axis), J.sign * th[i] * RAD); });
+    const F = forwardKinematics(th);
+    const O = F.map(m => v3(m[3], m[7], m[11])), Z = F.map(m => v3(m[2], m[6], m[10])), X = F.map(m => v3(m[0], m[4], m[8]));
+    placeBetween(link1s, new THREE.Vector3(0, TABLE_Z + 0.15, 0), O[1]);
+    placeBetween(link2, O[1], O[2]); placeBetween(link3, O[2], O[3]); placeBetween(link5, O[4], O[5]);
+    const tipP = O[5], gap = gripping ? 0.022 : 0.032;
+    [fingerL, fingerR].forEach((f, k) => {
+      f.position.copy(tipP).addScaledVector(X[5], (k ? 1 : -1) * gap).addScaledVector(Z[5], 0.014);
+      f.quaternion.setFromUnitVectors(up, Z[5].clone().normalize());
+    });
+    axes.position.copy(tipP);
+    axes.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(X[5], new THREE.Vector3().crossVectors(Z[5], X[5]), Z[5]));
+    if (gripping) part.position.copy(tipP).addScaledVector(Z[5], 0.026);
+    target.visible = !!tgt;
+    if (tgt) { target.position.copy(v3(tgt.x, tgt.y, tgt.z)); target.material.color.set(ok ? 0xe0574a : 0x888888); }
+    needs = true;
+  }
+  function resize() {
+    const w = stage.clientWidth, h = stage.clientHeight;
+    renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); needs = true;
+  }
+  new ResizeObserver(resize).observe(stage); resize();
+  if (controls) controls.addEventListener('change', () => { needs = true; });
+  (function loop() {
+    if (controls) controls.update();
+    if (needs) { renderer.render(scene, camera); needs = false; }
+    requestAnimationFrame(loop);
+  })();
+  theme();
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', theme);
+  new MutationObserver(theme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  return {
+    update,
+    setGrip(g) { gripping = g; needs = true; },
+    resetPart(p) { gripping = false; part.visible = true; part.position.copy(v3(p.x, p.y, TABLE_Z + 0.02)); needs = true; },
+  };
+}
+try { scene3d = initScene(); } catch (e) { $('#fallback').hidden = false; $('#gl').hidden = true; }
+render();
+</script>
+
+</body>
+</html>
