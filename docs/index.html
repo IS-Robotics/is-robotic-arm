@@ -170,9 +170,12 @@ input[type="range"] { width: 100%; accent-color: var(--accent); margin: 0; }
 .viewer-note { margin-top: 18px; font-size: var(--step--1); color: var(--muted); max-width: 70ch; }
 
 /* ---------- Mécanique ---------- */
-.story { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: clamp(16px, 2.5vw, 28px); }
+.story { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(16px, 2.5vw, 28px); }
+@media (max-width: 860px) { .story { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 520px) { .story { grid-template-columns: 1fr; } }
 .story figure { margin: 0; display: grid; gap: 10px; align-content: start; min-width: 0; }
 .story img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 6px; display: block; background: var(--line); }
+.story img.cad { object-fit: contain; background: #2e3440; }
 .story figcaption { font-size: var(--step--1); color: var(--muted); }
 .story figcaption b { display: block; color: var(--ink); font-weight: 600; font-size: var(--step-0); margin-bottom: 2px; }
 .story .tag { font-family: var(--f-mono); font-size: .7rem; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
@@ -365,8 +368,10 @@ footer .meta { font: 500 var(--step--1)/1.6 var(--f-mono); color: var(--muted); 
         <p class="prose">Toutes les pièces structurelles et les réducteurs ont été dessinés sous <strong>Fusion 360</strong> et imprimés en FDM. Chaque choix a été testé sur prototype avant d'être retenu.</p>
       </div>
       <div class="story">
-        <figure><img src="img/cad.jpg" alt="Modèle CAO du bras dans Fusion 360" loading="lazy" style="object-position:50% 40%">
-          <figcaption><span class="tag">CAO</span><b>Planification sous Fusion 360</b>Modèle complet du bras, utilisé ensuite pour exporter l'URDF du jumeau numérique.</figcaption></figure>
+        <figure><img class="cad" src="img/cad-arm.jpg" alt="Modèle CAO complet du bras dans Fusion 360, avec les angles des articulations annotés" loading="lazy">
+          <figcaption><span class="tag">CAO</span><b>Modèle complet sous Fusion 360</b>Assemblage articulé du bras, avec ses liaisons pivots. C'est de ce modèle qu'est exporté l'URDF du jumeau numérique.</figcaption></figure>
+        <figure><img class="cad" src="img/cad-gearbox.jpg" alt="Vue CAO du réducteur planétaire de l'épaule : planétaire, trois satellites et couronne" loading="lazy">
+          <figcaption><span class="tag">CAO</span><b>Réducteur planétaire en détail</b>Planétaire central, trois satellites sur roulements et couronne à denture intérieure, intégrés directement dans l'articulation.</figcaption></figure>
         <figure><img src="img/proto-helical.jpg" alt="Prototype de réducteur planétaire à dentures hélicoïdales" loading="lazy">
           <figcaption><span class="tag">Prototype 1</span><b>Dentures hélicoïdales</b>Jeu trop important : les surplombs le long de l'hélice s'impriment mal en FDM et dégradent l'engrènement.</figcaption></figure>
         <figure><img src="img/proto-spur.jpg" alt="Prototype de réducteur planétaire à dentures droites" loading="lazy">
